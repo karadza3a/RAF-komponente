@@ -1,0 +1,46 @@
+group 'demo.akaradzic13'
+version '1.0'
+
+apply plugin: 'scala'
+apply plugin: 'java'
+apply plugin: 'groovy'
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+sourceSets {
+    main {
+        scala {
+            srcDirs = ['src/main/scala']
+        }
+        java {
+            srcDirs = []
+        }
+    }
+    test {
+        java {
+            srcDirs = []
+        }
+        scala {
+            srcDirs = ['src/test/scala']
+        }
+        groovy {
+            srcDirs = ['src/test/groovy']
+        }
+    }
+}
+
+dependencies {
+    compile "me.akaradzic13:schedule:1.0"
+}
+
+ScalaCompileOptions.metaClass {
+    daemonServer = true
+    fork = false
+    useAnt = false
+    useCompileDaemon = false
+}
+
+test.testLogging.events "passed", "skipped", "failed"
