@@ -13,22 +13,29 @@ import com.google.api.client.googleapis.json.GoogleJsonError
 import com.google.api.client.http.HttpHeaders
 import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.client.util.store.FileDataStoreFactory
-import com.google.api.services.calendar.model.{Calendar => CalendarModel}
+import com.google.api.client.util.{DateTime => GoogleDateTime}
+import com.google.api.services.calendar.model.{EventDateTime, Calendar => GoogleCalendarModel, Event => GoogleEventModel}
 import com.google.api.services.calendar.{CalendarScopes, Calendar => GoogleCalendar}
+import org.joda.time.DateTime
 
+import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
 
 /**
+  * Gets credentials for modifying the users calendar and provides methods for adding a new calendar instance as well as
+  * populating it with a list of events.
+  *
   * Loosely based on https://github.com/google/google-api-java-client-samples
+  *
+  * @param SECRETS_FILEPATH path to file containing API secrets obtained from Google Cloud Console
+  * @param DATA_STORE_DIR   path to directory where user credentials should be stored
   */
-class GoogleCalendarGenerator(val SECRETS_FILEPATH: String = "/Users/andrejk/Downloads/client_secrets.json",
-                              val DATA_STORE_DIR: String = "/Users/andrejk/IdeaProjects/komponente/schedule/store"
-                             ) {
+class GoogleCalendarGenerator(val SECRETS_FILEPATH: String, val DATA_STORE_DIR: String) {
 
   private val JSON_FACTORY = JacksonFactory.getDefaultInstance
   private val httpTransport = GoogleNetHttpTransport.newTrustedTransport
   private val dataStoreFactory = new FileDataStoreFactory(new File(DATA_STORE_DIR))
-  private var addedCalendar: Try[CalendarModel] = Failure(new Exception("Calendar not initialized."))
+  private var addedCalendar: Try[GoogleCalendarModel] = Failure(new Exception("Calendar not initialized."))
 
   // lazy eval
   val client: GoogleCalendar = {
@@ -47,7 +54,7 @@ class GoogleCalendarGenerator(val SECRETS_FILEPATH: String = "/Users/andrejk/Dow
     // load client secrets
     val clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(new FileInputStream(SECRETS_FILEPATH)))
     if (clientSecrets.getDetails.getClientId.startsWith("Enter") || clientSecrets.getDetails.getClientSecret.startsWith("Enter ")) {
-      println("Enter Client ID and Secret from https://code.google.com/apis/console/?api=calendar " + "into calendar-cmdline-sample/src/main/resources/client_secrets.json")
+      println("Enter Client ID and Secret from https://code.google.com/apis/console/?api=calendar into " + SECRETS_FILEPATH)
       System.exit(1)
     }
     // set up authorization code flow
@@ -56,25 +63,32 @@ class GoogleCalendarGenerator(val SECRETS_FILEPATH: String = "/Users/andrejk/Dow
     new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver).authorize("user")
   }
 
-  def calendar: Try[CalendarModel] = {
+  /**
+    * If calendar is not initialized or the previous call failed, creates and returns a new instance. Otherwise returns
+    * the existing calendar instance.
+    *
+    * Initialization in this context means creating a new calendar in user's account.
+    *
+    * @return Instance of com.google.api.services.calendar.model.Calendar
+    */
+  def calendar: Try[GoogleCalendarModel] = {
     val cal = addedCalendar
 
-    // if calendar is not initialized or the previous call failed, create and return an instance
     cal.recoverWith {
       case _ =>
         val batch: BatchRequest = client.batch
 
-        val callback: JsonBatchCallback[CalendarModel] = new JsonBatchCallback[CalendarModel]() {
-          def onSuccess(calendar: CalendarModel, responseHeaders: HttpHeaders): Unit = {
+        val callback: JsonBatchCallback[GoogleCalendarModel] = new JsonBatchCallback[GoogleCalendarModel]() {
+          def onSuccess(calendar: GoogleCalendarModel, responseHeaders: HttpHeaders): Unit = {
             addedCalendar = Success(calendar)
           }
 
           def onFailure(e: GoogleJsonError, responseHeaders: HttpHeaders): Unit = {
-            Failure(new Exception(e.getMessage))
+            addedCalendar = Failure(new Exception(e.getMessage))
           }
         }
 
-        client.calendars.insert(new CalendarModel().setSummary("Softverske Komponente (TEST)")).queue(batch, callback)
+        client.calendars.insert(new GoogleCalendarModel().setSummary("Softverske Komponente (TEST)")).queue(batch, callback)
 
         // blocks until all callbacks have returned
         batch.execute()
@@ -83,5 +97,37 @@ class GoogleCalendarGenerator(val SECRETS_FILEPATH: String = "/Users/andrejk/Dow
     }
   }
 
+  implicit def dateTimeToGoogleDateTIme(d: DateTime): EventDateTime = new EventDateTime().setDateTime(new GoogleDateTime(d.getMillis))
+
+  /**
+    * Adds all given events to user's calendar.
+    *
+    * @param events List of events to add
+    */
+  def addEvents(events: List[CalendarEvent]): Unit = {
+    val cal: GoogleCalendarModel = calendar.get
+
+    val batch: BatchRequest = client.batch
+
+    val callback: JsonBatchCallback[GoogleEventModel] = new JsonBatchCallback[GoogleEventModel]() {
+      def onSuccess(event: GoogleEventModel, responseHeaders: HttpHeaders): Unit = {}
+
+      def onFailure(e: GoogleJsonError, responseHeaders: HttpHeaders): Unit = throw new Exception(e.getMessage)
+    }
+
+    events.foreach { event =>
+      client.events.insert(cal.getId,
+        new GoogleEventModel()
+          .setSummary(event.title)
+          .setDescription(event.description)
+          .setLocation(event.location)
+          .setStart(event.start)
+          .setEnd(event.end)
+      ).queue(batch, callback)
+    }
+
+    // blocks until all callbacks have returned
+    batch.execute()
+  }
 }
 

@@ -2,7 +2,6 @@ package me.akaradzic13.schedule
 
 import java.time.DayOfWeek
 
-import com.google.api.services.calendar.model.CalendarListEntry
 import com.univocity.parsers.csv.{CsvParser, CsvParserSettings}
 import org.joda.time.{DateTime, LocalTime}
 
@@ -12,7 +11,7 @@ import scala.util.Random
 object Main extends App {
 
   def parserTest = {
-    val start = DateTime.parse("2018-01-01").toLocalDate
+    val start = DateTime.parse("2018-04-03").toLocalDate
     val end = start.plusDays(10)
     val parser = new CsvParser(new CsvParserSettings())
 
@@ -55,33 +54,39 @@ object Main extends App {
     println(lessonsSubset)
 
     val specialWorkdays = List(
-      SpecialWorkday.applyFromString("2018-01-05"),
-      SpecialWorkday.applyFromString("2018-01-06"),
-      SpecialWorkday.applyFromString("2018-01-07"),
-      SpecialWorkday.applyFromString("2018-01-08"),
-      SpecialWorkday.applyFromString("2018-01-10", Some(DayOfWeek.FRIDAY))
+      SpecialWorkday.applyFromString("2018-04-06"),
+      SpecialWorkday.applyFromString("2018-04-07"),
+      SpecialWorkday.applyFromString("2018-04-08"),
+      SpecialWorkday.applyFromString("2018-04-09"),
+      SpecialWorkday.applyFromString("2018-04-10", Some(DayOfWeek.FRIDAY))
     )
 
-    println(new ScheduleConverter(start, end, lessonsSubset, specialWorkdays).calendarEvents)
+    val events = new ScheduleConverter(start, end, lessonsSubset, specialWorkdays).calendarEvents
+    println(events)
+    events
   }
 
   def googleTest = {
-    val G = new GoogleCalendarGenerator()
+    val G = new GoogleCalendarGenerator(
+      "/Users/andrejk/Downloads/client_secrets.json",
+      "/Users/andrejk/IdeaProjects/komponente/schedule/store")
 
-    G.calendar
+    G.addEvents(parserTest)
 
-    val calendarList = G.client.calendarList.list.execute
 
-    if (calendarList.getItems != null) {
-      for (entry: CalendarListEntry <- calendarList.getItems.asScala) {
+    //    val calendarList = G.client.calendarList.list.execute
+    //
+    //    if (calendarList.getItems != null) {
+    //      for (entry: CalendarListEntry <- calendarList.getItems.asScala) {
+    //
+    //        println("ID: " + entry.getId)
+    //        println("Summary: " + entry.getSummary)
+    //        if (entry.getDescription != null)
+    //          println("Description: " + entry.getDescription)
+    //      }
+    //      println("-----------------------------------------------")
+    //    }
 
-        println("ID: " + entry.getId)
-        println("Summary: " + entry.getSummary)
-        if (entry.getDescription != null)
-          println("Description: " + entry.getDescription)
-      }
-      println("-----------------------------------------------")
-    }
 
   }
 
