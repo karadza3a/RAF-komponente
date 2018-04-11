@@ -69,7 +69,7 @@ class GoogleCalendarGenerator(val SECRETS_FILEPATH: String, val DATA_STORE_DIR: 
     *
     * Initialization in this context means creating a new calendar in user's account.
     *
-    * @return Instance of com.google.api.services.calendar.model.Calendar
+    * @return Try wrapping instance of [[https://developers.google.com/resources/api-libraries/documentation/calendar/v3/java/latest/com/google/api/services/calendar/model/Calendar.html com.google.api.services.calendar.model.Calendar]] or exception if failed
     */
   def calendar: Try[GoogleCalendarModel] = {
     val cal = addedCalendar

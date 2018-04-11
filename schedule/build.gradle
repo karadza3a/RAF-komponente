@@ -1,11 +1,11 @@
-group 'me.akaradzic13'
-version '1.0'
-
 apply plugin: 'idea'
 apply plugin: 'scala'
 apply plugin: 'java'
 apply plugin: 'groovy'
 apply plugin: "maven"
+
+group 'me.akaradzic13'
+version '1.0'
 
 repositories {
     mavenCentral()
@@ -16,21 +16,13 @@ sourceSets {
         scala {
             srcDirs = ['src/main/scala']
         }
-        java {
-            srcDirs = []
-        }
     }
-    test {
-        java {
-            srcDirs = []
-        }
-        scala {
-            srcDirs = ['src/test/scala']
-        }
-        groovy {
-            srcDirs = ['src/test/groovy']
-        }
-    }
+}
+
+task aggregatedScaladocs(type: ScalaDoc, description: 'Generate scaladocs from all child projects as if it were a single project', group: 'Documentation') {
+    source = sourceSets.main.allScala
+    destinationDir = file("$buildDir/docs/scaladoc")
+    title = "$project.name $version API"
 }
 
 dependencies {

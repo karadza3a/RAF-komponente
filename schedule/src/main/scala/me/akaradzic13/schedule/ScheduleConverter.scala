@@ -5,7 +5,7 @@ import java.time.DayOfWeek
 import org.joda.time.{Days, LocalDate}
 
 /**
-  * Converts list of [Lesson]s to list of [CalendarEvent]s with additional options specified below.
+  * Converts list of [[Lesson]]s to list of [[CalendarEvent]]s with additional options specified below.
   *
   * @param start           schedule effective start time
   * @param end             schedule effective end time
@@ -24,7 +24,7 @@ class ScheduleConverter(start: LocalDate,
     * Gets day of week for specified date taking into account special workdays.
     *
     * @param date date
-    * @return optional day of week ([DayOfWeek] for the specified date or none if the day is non-working
+    * @return optional day of week for the specified date or none if the day is non-working
     */
   def getEffectiveDoW(date: LocalDate): Option[DayOfWeek] = {
     specialWorkdaysMap.get(date) match {

@@ -3,7 +3,7 @@ package me.akaradzic13.schedule
 import org.joda.time.{DateTime, DateTimeZone, LocalDate}
 
 /**
-  * Event model used by [GoogleCalendarGenerator] to populate user's calendar.
+  * Event model used by [[GoogleCalendarGenerator]] to populate user's calendar.
   *
   * @param title       event summary
   * @param description event description
