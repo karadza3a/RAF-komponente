@@ -15,24 +15,14 @@ sourceSets {
         scala {
             srcDirs = ['src/main/scala']
         }
-        java {
-            srcDirs = []
-        }
-    }
-    test {
-        java {
-            srcDirs = []
-        }
-        scala {
-            srcDirs = ['src/test/scala']
-        }
-        groovy {
-            srcDirs = ['src/test/groovy']
-        }
     }
 }
 
 dependencies {
+    compile "org.scala-lang:scala-library:2.12.5"
+    compile "org.scala-lang:scala-compiler:2.12.5"
+
+    compile "com.univocity:univocity-parsers:2.6.1"
     compile "me.akaradzic13:schedule:1.0"
 }
 
@@ -43,4 +33,27 @@ ScalaCompileOptions.metaClass {
     useCompileDaemon = false
 }
 
-test.testLogging.events "passed", "skipped", "failed"
+// Require the scala-compiler jar
+buildscript {
+    dependencies {
+        classpath "org.scala-lang:scala-compiler:2.12.5"
+    }
+    repositories {
+        mavenCentral()
+    }
+}
+
+// The path of the scala-compiler jar
+def scalaPath = buildscript.configurations.classpath.find {
+    it.name == "scala-compiler-2.12.5.jar"
+}
+
+// The classpath of this project and its dependencies
+def classpath = sourceSets.main.runtimeClasspath.asPath
+
+// Prints the classpath needed to launch the REPL
+task printClasspath {
+    doLast {
+        println "${scalaPath}:${classpath}"
+    }
+}
